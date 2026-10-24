@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% block title %}{{ student.fullname }} — IMAP Portal{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.1rem">
+    <a href="{{ url_for('admin_students') }}" class="btn btn-outline btn-sm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Students
+    </a>
+    <div class="page-title">Student Profile</div>
+  </div>
+
+  <!-- Header card -->
+  <div class="card mb" style="padding:1.25rem 1.5rem">
+    <div style="display:flex;align-items:center;gap:1.1rem;flex-wrap:wrap">
+      <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;color:#fff;flex-shrink:0">
+        {{ student.fullname[0].upper() }}
+      </div>
+      <div style="flex:1">
+        <div style="font-size:1.1rem;font-weight:700;color:var(--gray-900)">{{ student.fullname }}</div>
+        <div class="mono" style="font-size:.75rem;color:var(--blue)">{{ student.matric or 'No matric set' }}</div>
+        <div style="font-size:.8rem;color:var(--gray-500)">{{ student.email }}</div>
+        <div style="margin-top:.5rem">
+          <span style="font-size:.72rem;color:var(--gray-500)">Profile {{ completion }}% complete</span>
+          <div class="prog-wrap" style="max-width:160px;margin-top:.25rem"><div class="prog-fill" style="width:{{ completion }}%"></div></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+        <div style="text-align:center;padding:.6rem 1rem;background:var(--blue-lt);border:1px solid var(--blue-mid);border-radius:var(--radius)">
+          <div style="font-size:1.4rem;font-weight:800;color:var(--blue)">{{ subs|length }}</div>
+          <div style="font-size:.65rem;color:var(--blue);font-family:var(--mono)">Submissions</div>
+        </div>
+        <div style="text-align:center;padding:.6rem 1rem;background:var(--green-lt);border:1px solid #bbf7d0;border-radius:var(--radius)">
+          <div style="font-size:1.4rem;font-weight:800;color:var(--green)">{{ courses|length }}</div>
+          <div style="font-size:.65rem;color:var(--green);font-family:var(--mono)">Courses</div>
+        </div>
+        {% if subs|selectattr('is_late','equalto',1)|list|length > 0 %}
+        <div style="text-align:center;padding:.6rem 1rem;background:var(--red-lt);border:1px solid #fecaca;border-radius:var(--radius)">
+          <div style="font-size:1.4rem;font-weight:800;color:var(--red)">{{ subs|selectattr('is_late','equalto',1)|list|length }}</div>
+          <div style="font-size:.65rem;color:var(--red);font-family:var(--mono)">Late</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <!-- Personal info -->
+    <div class="card">
+      <div class="sect-label" style="margin-bottom:.75rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Personal Information
+      </div>
+      {% for label, val in [
+        ('Phone', student.phone), ('Gender', student.gender),
+        ('State of Origin', student.state_of_origin), ('Joined', student.created_at[:10])
+      ] %}
+      <div class="info-row">
+        <span class="info-k">{{ label }}</span>
+        <span class="info-v {% if not val %}empty{% endif %}">{{ val or 'Not set' }}</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Academic info -->
+    <div class="card">
+      <div class="sect-label" style="margin-bottom:.75rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        Academic Information
+      </div>
+      {% for label, val in [
+        ('Department', student.dept_name), ('Faculty', student.faculty),
+        ('Programme', student.program), ('Level', student.level),
+        ('Session', student.session_year), ('Semester', student.semester)
+      ] %}
+      <div class="info-row">
+        <span class="info-k">{{ label }}</span>
+        <span class="info-v {% if not val %}empty{% endif %}">{{ val or 'Not set' }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Courses -->
+  {% if courses %}
+  <div class="card mb">
+    <div class="card-header">
+      <span class="card-title">Registered Courses</span>
+      <span class="mono" style="font-size:.72rem;color:var(--gray-400)">{{ courses|sum(attribute='credit_unit') }} units</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Code</th><th>Course Name</th><th>Units</th><th>Semester</th></tr></thead>
+        <tbody>
+          {% for c in courses %}
+          <tr>
+            <td class="mono" style="color:var(--blue);font-size:.78rem">{{ c.course_code }}</td>
+            <td style="color:var(--gray-700)">{{ c.course_name }}</td>
+            <td class="mono" style="font-size:.78rem;color:var(--gray-500)">{{ c.credit_unit }}</td>
+            <td style="font-size:.78rem;color:var(--gray-400)">{{ c.semester or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Submissions -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Submissions</span>
+      <span class="mono" style="font-size:.72rem;color:var(--gray-400)">{{ subs|length }}</span>
+    </div>
+    {% if subs %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Assignment</th><th>Course</th><th>File</th><th>Status</th><th>Date</th><th></th></tr></thead>
+        <tbody>
+          {% for s in subs %}
+          <tr>
+            <td class="mono" style="font-size:.72rem;color:var(--gray-400)">{{ loop.index }}</td>
+            <td style="font-weight:500;color:var(--gray-900);font-size:.83rem">{{ s.title }}</td>
+            <td class="mono" style="font-size:.75rem;color:var(--blue)">{{ s.course_code }}</td>
+            <td><span class="badge badge-{{ file_icon(s.file_ext) }}">{{ s.file_ext.upper() }}</span></td>
+            <td>
+              {% if s.is_late %}
+                <span class="badge badge-late">LATE</span>
+              {% else %}
+                <span class="badge badge-ontime">On Time</span>
+              {% endif %}
+            </td>
+            <td style="font-size:.78rem;color:var(--gray-500)">{{ s.submitted_at[:10] }}</td>
+            <td>
+              <a href="{{ url_for('admin_download', sid=s.id) }}" class="btn btn-green btn-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <h3>No submissions yet</h3><p>This student hasn't submitted anything.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

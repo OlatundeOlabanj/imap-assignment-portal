@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — TJs-Code Assignment Portal</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body style="background:#f3f4f6">
+
+<div class="auth-wrap">
+  <!-- LEFT: gradient card -->
+  <div class="auth-left">
+    <div class="auth-card">
+      <!-- Crest -->
+      <img src="{{ url_for('static', filename='img/crest.png') }}"
+           class="auth-crest"
+           onerror="this.outerHTML='<div style=\'width:64px;height:64px;background:linear-gradient(135deg,#4f46e5,#2563eb);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto .85rem\'><svg style=\'width:30px;height:30px;color:#fff\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\'><path d=\'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z\'/></svg></div>'"
+           alt="IMAP Crest">
+
+      <div class="auth-school">
+        <div class="auth-school-name">Isa Mustapha Agwai I Polytechnic</div>
+        <div class="auth-school-dept">TJs-Code Departmental Assignment Portal</div>
+        <div class="auth-school-sub">Lafia, Nasarawa State</div>
+      </div>
+
+      <div class="auth-title">Welcome back!</div>
+      <div class="auth-sub">Sign in with your matric number or email address.</div>
+
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for cat, msg in messages %}
+            <div class="alert {{ cat }}" style="margin-bottom:.75rem;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              {{ msg }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('login') }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+          <label class="form-label" for="identifier">Matric Number or Email</label>
+          <input type="text" id="identifier" name="identifier" class="form-control"
+                 placeholder="e.g. IMAP/SST/HSWD/25/26/0006"
+                 required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <div style="position:relative">
+            <input type="password" id="password" name="password" class="form-control"
+                   placeholder="Enter your password"
+                   required autocomplete="current-password">
+            <button type="button" onclick="togglePw()" style="position:absolute;right:.7rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray-400);">
+              <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:17px;height:17px">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" style="margin-top:.25rem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/>
+          </svg>
+          LOGIN
+        </button>
+      </form>
+
+      <div style="text-align:center;margin-top:1.1rem;font-size:.82rem;color:var(--gray-500)">
+        New student? <a href="{{ url_for('register') }}" class="link" style="font-weight:600">Apply Here</a>
+      </div>
+
+      <div style="margin-top:.85rem;padding:.65rem .85rem;background:#f9fafb;border:1px solid var(--gray-200);border-radius:var(--radius);text-align:center">
+        <a href="{{ url_for('admin_login') }}" style="font-size:.8rem;color:var(--gray-500);display:flex;align-items:center;justify-content:center;gap:.4rem;text-decoration:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px">
+            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+          </svg>
+          Admin / Lecturer? Sign in here
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: lecture hall imagery overlay -->
+  <div class="auth-right">
+    <div class="auth-right-overlay">
+      <div class="auth-right-text">
+        <h2>Submit Assignments<br>Digitally</h2>
+        <p>A seamless platform for IMAP students to submit coursework and for lecturers to manage, track and download submissions — all in one place.</p>
+        <div class="auth-right-feat">
+          <div class="auth-feat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Submit PDF, Word & image files
+          </div>
+          <div class="auth-feat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Deadline tracking with late flagging
+          </div>
+          <div class="auth-feat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Department-filtered assignments
+          </div>
+          <div class="auth-feat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Admin dashboard with full controls
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function togglePw(){
+    const pw = document.getElementById('password');
+    pw.type = pw.type === 'password' ? 'text' : 'password';
+  }
+</script>
+</body>
+</html>

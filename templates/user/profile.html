@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% block title %}My Profile — IMAP Assignment Portal{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div style="margin-bottom:1.1rem">
+    <div class="page-title">My Profile</div>
+    <div class="page-sub">Manage your account settings and academic information</div>
+  </div>
+
+  <div class="profile-layout">
+
+    <!-- SIDEBAR -->
+    <div class="card profile-sidebar" style="text-align:center;padding:1.5rem 1rem">
+      <div class="profile-sidebar-avatar">
+        <div style="width:70px;height:70px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:800;color:#fff;margin:0 auto .85rem">
+          {{ user.fullname[0].upper() }}
+        </div>
+      </div>
+      <div class="profile-sidebar-meta">
+        <div style="font-weight:700;font-size:.9rem;color:var(--gray-900)">{{ user.fullname }}</div>
+        <div class="mono" style="font-size:.7rem;color:var(--gray-500);margin-top:.2rem">{{ user.matric or 'No matric' }}</div>
+        <div style="font-size:.75rem;color:var(--blue);margin-top:.1rem">{{ user.email }}</div>
+        <div style="margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--gray-200)">
+          <div style="font-size:.72rem;color:var(--gray-500);margin-bottom:.3rem">Profile {{ completion }}% complete</div>
+          <div class="prog-wrap"><div class="prog-fill" style="width:{{ completion }}%"></div></div>
+        </div>
+        <div style="margin-top:.85rem;text-align:left">
+          <div class="info-row"><span class="info-k" style="min-width:70px;font-size:.74rem">Phone</span><span class="info-v" style="font-size:.78rem">{{ user.phone or '—' }}</span></div>
+          <div class="info-row"><span class="info-k" style="min-width:70px;font-size:.74rem">Level</span><span class="info-v" style="font-size:.78rem">{{ user.level or '—' }}</span></div>
+          <div class="info-row"><span class="info-k" style="min-width:70px;font-size:.74rem">Dept.</span><span class="info-v" style="font-size:.78rem">{{ user.dept_name or '—' }}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(event,'t-info')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Personal Info
+        </button>
+        <button class="tab-btn" onclick="switchTab(event,'t-courses')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+          My Courses
+          <span style="background:var(--blue);color:#fff;font-size:.62rem;padding:.05rem .3rem;border-radius:3px;font-family:var(--mono)">{{ courses|length }}</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab(event,'t-pw')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          Password
+        </button>
+      </div>
+
+      <!-- Personal Info -->
+      <div id="t-info" class="tab-pane active">
+        <div class="card">
+          <form method="POST" action="{{ url_for('profile') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="profile">
+            <div class="sect-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Basic Details</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Full Name *</label>
+                <input type="text" name="fullname" class="form-control" value="{{ user.fullname }}" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Phone Number</label>
+                <input type="tel" name="phone" class="form-control" placeholder="08012345678" value="{{ user.phone or '' }}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Gender</label>
+                <select name="gender" class="form-control">
+                  <option value="">— Select —</option>
+                  <option value="Male"   {% if user.gender=='Male' %}selected{% endif %}>Male</option>
+                  <option value="Female" {% if user.gender=='Female' %}selected{% endif %}>Female</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">State of Origin</label>
+                <input type="text" name="state_of_origin" class="form-control" placeholder="e.g. Nasarawa" value="{{ user.state_of_origin or '' }}">
+              </div>
+            </div>
+            <div class="divider"></div>
+            <div class="sect-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>Academic Details</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Department</label>
+                <select name="department_id" class="form-control">
+                  <option value="">— Select —</option>
+                  {% for d in depts %}
+                    <option value="{{ d.id }}" {% if user.department_id==d.id %}selected{% endif %}>{{ d.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Faculty</label>
+                <input type="text" name="faculty" class="form-control" placeholder="e.g. School of Science and Technology" value="{{ user.faculty or '' }}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Programme</label>
+                <input type="text" name="program" class="form-control" placeholder="e.g. HND Software and Web Development" value="{{ user.program or '' }}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Level</label>
+                <select name="level" class="form-control">
+                  <option value="">— Select —</option>
+                  {% for lv in ['ND1','ND2','HND1','HND2','100L','200L','300L','400L','500L'] %}
+                    <option value="{{ lv }}" {% if user.level==lv %}selected{% endif %}>{{ lv }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Academic Session</label>
+                <input type="text" name="session_year" class="form-control" placeholder="2025/2026" value="{{ user.session_year or '' }}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Current Semester</label>
+                <select name="semester" class="form-control">
+                  <option value="">— Select —</option>
+                  <option value="First"  {% if user.semester=='First' %}selected{% endif %}>First Semester</option>
+                  <option value="Second" {% if user.semester=='Second' %}selected{% endif %}>Second Semester</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Save Profile
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Courses -->
+      <div id="t-courses" class="tab-pane">
+        <div class="card mb">
+          <div class="sect-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Register a Course</div>
+          <form method="POST" action="{{ url_for('profile') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="add_course">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Course Code *</label>
+                <input type="text" name="course_code" class="form-control" placeholder="e.g. SWD 312" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Course Name *</label>
+                <input type="text" name="course_name" class="form-control" placeholder="e.g. Database Design I" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Credit Units</label>
+                <input type="number" name="credit_unit" class="form-control" placeholder="3" min="0" max="6" value="3">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Semester</label>
+                <select name="semester_c" class="form-control">
+                  <option value="">— Select —</option>
+                  <option value="First Semester">First Semester</option>
+                  <option value="Second Semester">Second Semester</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Course
+            </button>
+          </form>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Registered Courses</span>
+            {% if courses %}<span class="mono" style="font-size:.72rem;color:var(--gray-400)">{{ courses|sum(attribute='credit_unit') }} units total</span>{% endif %}
+          </div>
+          {% if courses %}
+            {% for c in courses %}
+            <div class="course-row">
+              <span class="c-code">{{ c.course_code }}</span>
+              <span class="c-name">{{ c.course_name }}</span>
+              {% if c.semester %}<span class="c-unit" style="margin-right:.5rem">{{ c.semester }}</span>{% endif %}
+              <span class="c-unit">{{ c.credit_unit }}u</span>
+              <form method="POST" action="{{ url_for('profile') }}" style="margin-left:.5rem">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="del_course">
+                <input type="hidden" name="course_id" value="{{ c.id }}">
+                <button type="submit" class="btn btn-red btn-sm" onclick="return confirm('Remove {{ c.course_code }}?')" title="Remove">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </form>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg><h3>No courses yet</h3><p>Add your registered courses above.</p></div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Password -->
+      <div id="t-pw" class="tab-pane">
+        <div class="card">
+          <div class="sect-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Change Password</div>
+          <form method="POST" action="{{ url_for('profile') }}" style="max-width:420px">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="change_password">
+            <div class="form-group">
+              <label class="form-label">Current Password</label>
+              <input type="password" name="current_password" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <input type="password" name="new_password" class="form-control" placeholder="Min. 6 characters" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm New Password</label>
+              <input type="password" name="confirm_password" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              Update Password
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function switchTab(e, id){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  e.currentTarget.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+</script>
+{% endblock %}

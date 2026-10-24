@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard — IMAP Assignment Portal{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div style="margin-bottom:1.1rem">
+    <div class="page-title">Admin Dashboard</div>
+    <div class="page-sub">
+      {% if session.is_superadmin %}All departments{% else %}Your department submissions{% endif %}
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card s-blue"><div class="stat-num">{{ total }}</div><div class="stat-lbl">Total Submissions</div></div>
+    <div class="stat-card s-green"><div class="stat-num">{{ today }}</div><div class="stat-lbl">Today</div></div>
+    <div class="stat-card s-red"><div class="stat-num">{{ late }}</div><div class="stat-lbl">Late</div></div>
+    <div class="stat-card s-orange"><div class="stat-num">{{ stud_c }}</div><div class="stat-lbl">Students</div></div>
+    <div class="stat-card"><div class="stat-num">{{ asgn_c }}</div><div class="stat-lbl">Assignments</div></div>
+  </div>
+
+  <!-- Filter bar -->
+  <form method="GET" action="{{ url_for('admin_dashboard') }}" class="card" style="padding:.85rem 1rem;margin-bottom:1rem">
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1;min-width:180px">
+        <label class="form-label">Search</label>
+        <div style="position:relative">
+          <svg style="position:absolute;left:.65rem;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--gray-400)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" name="q" class="form-control" style="padding-left:2rem" placeholder="Name, matric, assignment…" value="{{ search }}">
+        </div>
+      </div>
+      <div style="min-width:160px">
+        <label class="form-label">Department</label>
+        <select name="dept" class="form-control">
+          <option value="">All</option>
+          {% for d in depts %}
+            <option value="{{ d.id }}" {% if dept_f==d.id|string %}selected{% endif %}>{{ d.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="min-width:120px">
+        <label class="form-label">Status</label>
+        <select name="late" class="form-control">
+          <option value="">All</option>
+          <option value="1" {% if late_f=='1' %}selected{% endif %}>Late Only</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:flex-end">
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        {% if search or dept_f or late_f %}
+          <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline btn-sm">Clear</a>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+
+  <!-- Table -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Submissions</span>
+      <span class="mono" style="font-size:.72rem;color:var(--gray-400)">
+        {{ total_subs }} total &mdash; page {{ page }}/{{ total_pages }}
+      </span>
+    </div>
+    {% if subs %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Student</th><th>Assignment</th><th class="col-hide-md">Course</th><th class="col-hide-md">Dept</th><th class="col-hide-sm">File</th><th>Status</th><th class="col-hide-sm">Submitted</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for s in subs %}
+          <tr>
+            <td class="mono col-hide-sm" style="font-size:.72rem;color:var(--gray-400)">{{ (page-1)*25 + loop.index }}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:.55rem">
+                <div style="width:28px;height:28px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:#fff;flex-shrink:0">{{ s.fullname[0].upper() }}</div>
+                <div>
+                  <div style="font-weight:500;color:var(--gray-900);font-size:.83rem">{{ s.fullname }}</div>
+                  <div class="mono" style="font-size:.68rem;color:var(--gray-400)">{{ s.matric or s.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="col-hide-md" style="font-size:.83rem;font-weight:500;color:var(--gray-900);max-width:160px">{{ s.title }}</td>
+            <td class="col-hide-md">
+              <div class="mono" style="font-size:.75rem;color:var(--blue)">{{ s.course_code }}</div>
+              <div style="font-size:.72rem;color:var(--gray-400)">{{ s.course_name[:20] }}{% if s.course_name|length>20 %}…{% endif %}</div>
+            </td>
+            <td class="col-hide-md" style="font-size:.78rem;color:var(--gray-500)">{{ s.dept_name or '—' }}</td>
+            <td class="col-hide-sm">
+              <span class="badge badge-{{ file_icon(s.file_ext) }}">{{ s.file_ext.upper() }}</span>
+              <div class="mono" style="font-size:.65rem;color:var(--gray-400);margin-top:.1rem">{{ human_size(s.file_size) }}</div>
+            </td>
+            <td>
+              {% if s.is_late %}
+                <span class="badge badge-late">LATE</span>
+              {% else %}
+                <span class="badge badge-ontime">On Time</span>
+              {% endif %}
+            </td>
+            <td class="col-hide-sm nowrap" style="font-size:.78rem;color:var(--gray-500)">
+              {{ s.submitted_at[:16].replace('T',' ') if 'T' in s.submitted_at else s.submitted_at[:16] }}
+            </td>
+            <td>
+              <div style="display:flex;gap:.35rem">
+                <a href="{{ url_for('admin_download', sid=s.id) }}" class="btn btn-green btn-sm" title="Download">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+                <form method="POST" action="{{ url_for('admin_del_sub', sid=s.id) }}" onsubmit="return confirm('Delete this submission permanently?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-red btn-sm" title="Delete">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.85rem .9rem;border-top:1px solid var(--gray-200);flex-wrap:wrap;gap:.5rem">
+      <span style="font-size:.8rem;color:var(--gray-500)">{{ total_subs }} results</span>
+      <div style="display:flex;gap:.35rem">
+        {% if page > 1 %}
+          <a href="?page={{ page-1 }}&q={{ search }}&dept={{ dept_f }}&late={{ late_f }}" class="btn btn-outline btn-sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            Prev
+          </a>
+        {% endif %}
+        {% for p in range(1, total_pages+1) %}
+          {% if p == page %}
+            <span class="btn btn-primary btn-sm" style="cursor:default">{{ p }}</span>
+          {% elif p <= 3 or p >= total_pages-2 or (p >= page-1 and p <= page+1) %}
+            <a href="?page={{ p }}&q={{ search }}&dept={{ dept_f }}&late={{ late_f }}" class="btn btn-outline btn-sm">{{ p }}</a>
+          {% elif p == 4 or p == total_pages-3 %}
+            <span class="btn btn-outline btn-sm" style="cursor:default">…</span>
+          {% endif %}
+        {% endfor %}
+        {% if page < total_pages %}
+          <a href="?page={{ page+1 }}&q={{ search }}&dept={{ dept_f }}&late={{ late_f }}" class="btn btn-outline btn-sm">
+            Next
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+      <div class="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <h3>No submissions found</h3>
+        <p>Try adjusting your filters.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <div style="text-align:center;font-size:.72rem;color:var(--gray-400);margin-top:1.5rem;padding-bottom:.5rem">
+    &copy; {{ now().year }} TJs-Code Assignment Portal &mdash; Isa Mustapha Agwai I Polytechnic, Lafia
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% block title %}Assignments — IMAP Assignment Portal{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="page-header-row">
+    <div>
+      <div class="page-title">Assignments</div>
+      <div class="page-sub">Create and manage assignment submissions</div>
+    </div>
+    <button class="btn btn-primary" onclick="document.getElementById('createModal').classList.add('open')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      New Assignment
+    </button>
+  </div>
+
+  {% if assignments %}
+    {% for a in assignments %}
+      {% set is_past = now.strftime('%Y-%m-%dT%H:%M') > a.deadline[:16] %}
+      <div class="asgn-card {% if is_past %}overdue{% endif %}" style="margin-bottom:.85rem">
+        <div class="asgn-top">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+              <div class="asgn-title">{{ a.title }}</div>
+              {% if is_past %}
+                <span class="badge badge-closed">Closed</span>
+              {% else %}
+                <span class="badge badge-open">Open</span>
+              {% endif %}
+            </div>
+            <div class="asgn-code">{{ a.course_code }} — {{ a.course_name }}</div>
+            {% if a.dept_name %}
+              <div style="font-size:.72rem;color:var(--gray-400);margin-top:.1rem">
+                <svg style="width:11px;height:11px;color:var(--blue);vertical-align:middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                {{ a.dept_name }}
+              </div>
+            {% else %}
+              <div style="font-size:.72rem;color:var(--gray-400);margin-top:.1rem">All Departments</div>
+            {% endif %}
+            <div class="asgn-dl {% if is_past %}late{% endif %}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Deadline: {{ fmt_dt(a.deadline) }}
+            </div>
+            {% if a.description %}
+              <div style="font-size:.8rem;color:var(--gray-500);margin-top:.4rem">{{ a.description }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Submission count badges -->
+          <div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end">
+            <div style="text-align:center;padding:.4rem .8rem;background:var(--blue-lt);border:1px solid var(--blue-mid);border-radius:var(--radius)">
+              <div style="font-size:1.2rem;font-weight:800;color:var(--blue)">{{ a.sub_count }}</div>
+              <div style="font-size:.65rem;color:var(--blue);font-family:var(--mono)">Submissions</div>
+            </div>
+            {% if a.late_count > 0 %}
+            <div style="text-align:center;padding:.4rem .8rem;background:var(--red-lt);border:1px solid #fecaca;border-radius:var(--radius)">
+              <div style="font-size:1.2rem;font-weight:800;color:var(--red)">{{ a.late_count }}</div>
+              <div style="font-size:.65rem;color:var(--red);font-family:var(--mono)">Late</div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div style="display:flex;gap:.5rem;margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--gray-100)">
+          <a href="{{ url_for('admin_assignment_detail', aid=a.id) }}" class="btn btn-outline btn-sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            View Submissions
+          </a>
+          <form method="POST" action="{{ url_for('admin_assignments') }}"
+                onsubmit="return confirm('Delete this assignment and ALL its submissions? This cannot be undone.')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="assignment_id" value="{{ a.id }}">
+            <button type="submit" class="btn btn-red btn-sm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+              </svg>
+              Delete
+            </button>
+          </form>
+          <div style="margin-left:auto;font-size:.72rem;color:var(--gray-400);align-self:center;font-family:var(--mono)">
+            Created {{ a.created_at[:10] }}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="card">
+      <div class="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <h3>No assignments yet</h3>
+        <p>Click "New Assignment" to create the first one.</p>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Create Assignment Modal -->
+<div class="overlay" id="createModal">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <span class="modal-title">New Assignment</span>
+      <button class="modal-close" onclick="document.getElementById('createModal').classList.remove('open')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <form method="POST" action="{{ url_for('admin_assignments') }}" novalidate>
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="create">
+      <div class="form-group">
+        <label class="form-label">Assignment Title *</label>
+        <input type="text" name="title" class="form-control" placeholder="e.g. Database Design Lab Report — Week 5" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Course Code *</label>
+          <input type="text" name="course_code" class="form-control" placeholder="e.g. SWD 312" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Course Name *</label>
+          <input type="text" name="course_name" class="form-control" placeholder="e.g. Database Design I" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Deadline (Date & Time) *</label>
+          <input type="datetime-local" name="deadline" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Restrict to Department</label>
+          <select name="department_id" class="form-control">
+            <option value="">All Departments</option>
+            {% for d in depts %}
+              <option value="{{ d.id }}">{{ d.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description / Instructions <span style="color:var(--gray-400)">(optional)</span></label>
+        <textarea name="description" class="form-control" placeholder="Provide any instructions or context for students…"></textarea>
+      </div>
+      <div style="display:flex;gap:.65rem;justify-content:flex-end;margin-top:.25rem">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('createModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Create Assignment
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.getElementById('createModal').addEventListener('click',function(e){
+    if(e.target===this)this.classList.remove('open');
+  });
+  // Auto-open on validation error
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat,msg in messages %}
+      {% if cat=='error' %}document.getElementById('createModal').classList.add('open');{% endif %}
+    {% endfor %}{% endif %}
+  {% endwith %}
+</script>
+{% endblock %}

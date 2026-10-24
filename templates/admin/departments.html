@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block title %}Departments — IMAP Assignment Portal{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="page-header-row">
+    <div>
+      <div class="page-title">Departments</div>
+      <div class="page-sub">Manage academic departments students can belong to</div>
+    </div>
+    <button class="btn btn-primary" onclick="document.getElementById('addModal').classList.add('open')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Department
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">All Departments</span>
+      <span class="mono" style="font-size:.72rem;color:var(--gray-400)">{{ depts|length }} total</span>
+    </div>
+
+    {% if depts %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Department</th><th>Faculty / School</th><th>Students</th><th>Added</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for d in depts %}
+          <tr>
+            <td class="mono" style="font-size:.72rem;color:var(--gray-400)">{{ loop.index }}</td>
+            <td style="font-weight:500;color:var(--gray-900)">{{ d.name }}</td>
+            <td style="font-size:.82rem;color:var(--gray-500)">{{ d.faculty or '—' }}</td>
+            <td style="font-weight:600;color:{% if d.student_count>0 %}var(--blue){% else %}var(--gray-400){% endif %}">
+              {{ d.student_count }}
+            </td>
+            <td style="font-size:.78rem;color:var(--gray-400)">{{ d.created_at[:10] }}</td>
+            <td>
+              <form method="POST" action="{{ url_for('admin_departments') }}"
+                    onsubmit="return confirm('Remove {{ d.name }}? Students in this department will be unlinked.')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="dept_id" value="{{ d.id }}">
+                <button type="submit" class="btn btn-red btn-sm">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                    <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                  </svg>
+                  Remove
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+        <h3>No departments yet</h3>
+        <p>Add your first department above.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Add Modal -->
+<div class="overlay" id="addModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title">Add Department</span>
+      <button class="modal-close" onclick="document.getElementById('addModal').classList.remove('open')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <form method="POST" action="{{ url_for('admin_departments') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="add">
+      <div class="form-group">
+        <label class="form-label">Department Name *</label>
+        <input type="text" name="name" class="form-control" placeholder="e.g. Software and Web Development" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Faculty / School <span style="color:var(--gray-400)">(optional)</span></label>
+        <input type="text" name="faculty" class="form-control" placeholder="e.g. School of Science and Technology">
+      </div>
+      <div style="display:flex;gap:.65rem;justify-content:flex-end;margin-top:.25rem">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('addModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Department
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.getElementById('addModal').addEventListener('click',function(e){
+    if(e.target===this)this.classList.remove('open');
+  });
+</script>
+{% endblock %}

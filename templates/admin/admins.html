@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% block title %}Manage Admins — IMAP Assignment Portal{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="page-header-row">
+    <div>
+      <div class="page-title">Admin Accounts</div>
+      <div class="page-sub">Manage lecturers and their department assignments</div>
+    </div>
+    <button class="btn btn-primary" onclick="document.getElementById('createModal').classList.add('open')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
+        <line x1="19" y1="8" x2="23" y2="8"/><line x1="21" y1="6" x2="21" y2="10"/>
+      </svg>
+      Add Admin / Lecturer
+    </button>
+  </div>
+
+  <div class="card mb">
+    <div class="card-header">
+      <span class="card-title">All Admins</span>
+      <span class="mono" style="font-size:.72rem;color:var(--gray-400)">{{ admins|length }} total</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Departments</th><th>Created</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for a in admins %}
+          <tr>
+            <td class="mono" style="font-size:.72rem;color:var(--gray-400)">{{ loop.index }}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:.55rem">
+                <div style="width:28px;height:28px;background:linear-gradient(135deg,#7c3aed,#2563eb);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:#fff;flex-shrink:0">{{ a.fullname[0].upper() }}</div>
+                <div>
+                  <div style="font-weight:500;font-size:.84rem;color:var(--gray-900)">{{ a.fullname }}</div>
+                  {% if a.id == session.user_id %}<div class="mono" style="font-size:.65rem;color:var(--blue)">You</div>{% endif %}
+                </div>
+              </div>
+            </td>
+            <td style="font-size:.83rem;color:var(--gray-600)">{{ a.email }}</td>
+            <td>
+              {% if a.is_superadmin %}
+                <span class="badge badge-open">Superadmin</span>
+              {% else %}
+                <span class="badge badge-ontime">Lecturer</span>
+              {% endif %}
+            </td>
+            <td style="font-size:.8rem;color:var(--gray-600)">
+              {% if a.is_superadmin %}
+                <span style="color:var(--gray-400);font-style:italic">All departments</span>
+              {% elif lecturer_depts[a.id] %}
+                {% for did in lecturer_depts[a.id] %}
+                  {% for d in depts if d.id == did %}
+                    <span class="badge badge-open" style="margin:.1rem .1rem 0 0">{{ d.name }}</span>
+                  {% endfor %}
+                {% endfor %}
+              {% else %}
+                <span style="color:var(--gray-400);font-style:italic">No departments</span>
+              {% endif %}
+            </td>
+            <td style="font-size:.78rem;color:var(--gray-400)">{{ a.created_at[:10] }}</td>
+            <td>
+              <div style="display:flex;gap:.35rem">
+                {% if not a.is_superadmin %}
+                <!-- Edit departments -->
+                <button class="btn btn-outline btn-sm" onclick="openEditDept({{ a.id }}, '{{ a.fullname }}', {{ lecturer_depts[a.id] }})">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Depts
+                </button>
+                {% endif %}
+                {% if a.id != session.user_id %}
+                <form method="POST" action="{{ url_for('admin_manage') }}" onsubmit="return confirm('Remove {{ a.fullname }}?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="action" value="delete">
+                  <input type="hidden" name="target_id" value="{{ a.id }}">
+                  <button type="submit" class="btn btn-red btn-sm">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div style="padding:.85rem 1rem;background:var(--blue-lt);border:1px solid var(--blue-mid);border-radius:var(--radius);font-size:.82rem;color:var(--blue);display:flex;gap:.6rem">
+    <svg style="width:15px;height:15px;flex-shrink:0;margin-top:.1rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Lecturers can only see students and submissions from their assigned departments. Superadmin sees everything. Assign departments carefully.
+  </div>
+</div>
+
+<!-- Create Admin Modal -->
+<div class="overlay" id="createModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <span class="modal-title">Add Admin / Lecturer</span>
+      <button class="modal-close" onclick="document.getElementById('createModal').classList.remove('open')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <form method="POST" action="{{ url_for('admin_manage') }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="create">
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input type="text" name="fullname" class="form-control" placeholder="e.g. Dr. Amina Bello" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address *</label>
+        <input type="email" name="email" class="form-control" placeholder="lecturer@imap.edu.ng" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Password *</label>
+          <input type="password" name="password" class="form-control" placeholder="Min. 6 chars" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm *</label>
+          <input type="password" name="confirm" class="form-control" placeholder="Repeat" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Assign Departments <span style="color:var(--gray-400)">(select multiple)</span></label>
+        <div style="border:1px solid var(--gray-300);border-radius:var(--radius);padding:.5rem;max-height:160px;overflow-y:auto;background:var(--white)">
+          {% for d in depts %}
+          <label style="display:flex;align-items:center;gap:.5rem;padding:.3rem .4rem;border-radius:4px;cursor:pointer;font-size:.84rem;color:var(--gray-700)">
+            <input type="checkbox" name="dept_ids" value="{{ d.id }}" style="accent-color:var(--blue)">
+            {{ d.name }}
+            {% if d.faculty %}<span style="font-size:.7rem;color:var(--gray-400)">({{ d.faculty }})</span>{% endif %}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div style="display:flex;gap:.65rem;justify-content:flex-end;margin-top:.5rem">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('createModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Account</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Departments Modal -->
+<div class="overlay" id="editDeptModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title" id="editDeptTitle">Edit Departments</span>
+      <button class="modal-close" onclick="document.getElementById('editDeptModal').classList.remove('open')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <form method="POST" action="{{ url_for('admin_manage') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="update_depts">
+      <input type="hidden" name="target_id" id="editDeptTargetId">
+      <div class="form-group">
+        <label class="form-label">Departments for this lecturer</label>
+        <div id="editDeptList" style="border:1px solid var(--gray-300);border-radius:var(--radius);padding:.5rem;max-height:200px;overflow-y:auto;background:var(--white)">
+          {% for d in depts %}
+          <label class="dept-check-label" data-id="{{ d.id }}" style="display:flex;align-items:center;gap:.5rem;padding:.3rem .4rem;border-radius:4px;cursor:pointer;font-size:.84rem;color:var(--gray-700)">
+            <input type="checkbox" name="dept_ids" value="{{ d.id }}" class="dept-check" style="accent-color:var(--blue)">
+            {{ d.name }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div style="display:flex;gap:.65rem;justify-content:flex-end">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('editDeptModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Departments</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openEditDept(id, name, currentDepts){
+  document.getElementById('editDeptTitle').textContent = 'Departments for ' + name;
+  document.getElementById('editDeptTargetId').value = id;
+  document.querySelectorAll('.dept-check').forEach(cb => {
+    cb.checked = currentDepts.includes(parseInt(cb.value));
+  });
+  document.getElementById('editDeptModal').classList.add('open');
+}
+document.querySelectorAll('.overlay').forEach(o => {
+  o.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('open'); });
+});
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}{% for cat,msg in messages %}
+    {% if cat=='error' %}document.getElementById('createModal').classList.add('open');{% endif %}
+  {% endfor %}{% endif %}
+{% endwith %}
+</script>
+{% endblock %}

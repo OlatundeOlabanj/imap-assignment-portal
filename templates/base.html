@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}IMAP Assignment Portal{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="flex flex-center gap-sm">
+    <button class="hamburger" id="hamBtn" onclick="toggleNav()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 12h18M3 6h18M3 18h18"/>
+      </svg>
+    </button>
+    <a href="{{ url_for('dashboard') if session.role=='student' else url_for('admin_dashboard') }}" class="navbar-brand">
+      <img src="{{ url_for('static', filename='img/crest.png') }}" class="navbar-crest"
+           onerror="this.style.display='none'" alt="IMAP Crest">
+      <div class="navbar-name">
+        TJs-Code Assignment Portal
+        <span>Isa Mustapha Agwai I Polytechnic</span>
+      </div>
+    </a>
+  </div>
+
+  <div class="navbar-nav" id="navMenu">
+    {% if session.role == 'admin' %}
+      <a href="{{ url_for('admin_dashboard') }}"    class="nav-item {% if request.endpoint=='admin_dashboard' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a href="{{ url_for('admin_assignments') }}"  class="nav-item {% if 'assignment' in request.endpoint %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Assignments
+      </a>
+      <a href="{{ url_for('admin_students') }}"     class="nav-item {% if 'student' in request.endpoint %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg>
+        Students
+      </a>
+      <a href="{{ url_for('admin_departments') }}"  class="nav-item {% if request.endpoint=='admin_departments' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+        Departments
+      </a>
+      <a href="{{ url_for('admin_manage') }}"       class="nav-item {% if request.endpoint=='admin_manage' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><line x1="19" y1="8" x2="23" y2="8"/><line x1="21" y1="6" x2="21" y2="10"/></svg>
+        Admins
+      </a>
+    {% else %}
+      <a href="{{ url_for('dashboard') }}"  class="nav-item {% if request.endpoint=='dashboard' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a href="{{ url_for('profile') }}"    class="nav-item {% if request.endpoint=='profile' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Profile
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="navbar-right">
+    <div class="navbar-user">
+      <div class="navbar-avatar">{{ session.fullname[0].upper() if session.fullname else 'U' }}</div>
+      <span class="navbar-user-id">
+        {{ session.matric or session.email[:18] }}
+      </span>
+    </div>
+    <a href="{{ url_for('logout') }}" class="btn-logout">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+      </svg>
+      Logout
+    </a>
+  </div>
+</nav>
+
+<!-- FLASH MESSAGES -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-zone">
+      {% for cat, msg in messages %}
+        <div class="alert {{ cat }}">
+          {% if cat == 'success' %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          {% else %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          {% endif %}
+          {{ msg }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+{% block content %}{% endblock %}
+
+<script>
+  function toggleNav(){
+    document.getElementById('navMenu').classList.toggle('open');
+  }
+  document.addEventListener('click',function(e){
+    const menu = document.getElementById('navMenu');
+    const btn  = document.getElementById('hamBtn');
+    if(menu.classList.contains('open') && !menu.contains(e.target) && !btn.contains(e.target)){
+      menu.classList.remove('open');
+    }
+  });
+</script>
+{% block extra_js %}{% endblock %}
+
+{% if GROQ_OK %}
+<!-- ── AI CHAT WIDGET ─────────────────────────────────────────────────────── -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ai-chat.css') }}">
+
+<button id="ai-fab" onclick="toggleAI()" title="Ask AI Assistant">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+  </svg>
+</button>
+
+<div id="ai-panel">
+  <div class="ai-head">
+    <div class="ai-head-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+      </svg>
+      AI Assistant (Groq)
+    </div>
+    <button class="ai-close" onclick="toggleAI()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="ai-msgs" id="aiMsgs">
+    <div class="ai-msg bot">Hi! I'm your AI assistant. Ask me anything about your assignments, academic writing, or how to use the portal.</div>
+  </div>
+  <div class="ai-input-row">
+    <input class="ai-input" id="aiInput" placeholder="Ask me anything…" onkeydown="if(event.key==='Enter')sendAI()">
+    <button class="ai-send" onclick="sendAI()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+let aiHistory = [];
+let aiOpen = false;
+
+function toggleAI(){
+  aiOpen = !aiOpen;
+  document.getElementById('ai-panel').classList.toggle('open', aiOpen);
+  if(aiOpen) document.getElementById('aiInput').focus();
+}
+
+function sendAI(){
+  const input = document.getElementById('aiInput');
+  const msg   = input.value.trim();
+  if(!msg) return;
+  input.value = '';
+  appendAIMsg(msg, 'user');
+  aiHistory.push({role:'user', content:msg});
+  const typing = appendAIMsg('Thinking…', 'bot typing');
+  fetch('/api/chat', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({message:msg, history:aiHistory.slice(-6)})
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    typing.remove();
+    const reply = d.reply || 'Sorry, I could not get a response.';
+    appendAIMsg(reply, 'bot');
+    aiHistory.push({role:'assistant', content:reply});
+  })
+  .catch(()=>{
+    typing.remove();
+    appendAIMsg('Connection error. Please try again.','bot');
+  });
+}
+
+function appendAIMsg(text, cls){
+  const msgs = document.getElementById('aiMsgs');
+  const div  = document.createElement('div');
+  div.className = 'ai-msg ' + cls;
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+</script>
+{% endif %}
+</body>
+</html>

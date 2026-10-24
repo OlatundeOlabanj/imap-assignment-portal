@@ -1,0 +1,394 @@
+{% extends 'base.html' %}
+{% block title %}{{ asgn.title }} — Submissions{% endblock %}
+
+{% block extra_css %}
+<style>
+.score-bar{height:8px;border-radius:4px;background:#e5e7eb;overflow:hidden;min-width:80px}
+.score-fill{height:100%;border-radius:4px;transition:width .4s}
+.review-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;
+  padding:12px 14px;font-size:.82rem;color:#374151;line-height:1.65;
+  white-space:pre-wrap;margin-top:.75rem;display:none}
+.review-box.open{display:block}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.1rem;flex-wrap:wrap">
+    <a href="{{ url_for('admin_assignments') }}" class="btn btn-outline btn-sm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Assignments
+    </a>
+    <div>
+      <div class="page-title">{{ asgn.title }}</div>
+      <div class="page-sub">{{ asgn.course_code }} — {{ asgn.course_name }}</div>
+    </div>
+  </div>
+
+  <!-- Assignment info -->
+  <div class="card mb" style="padding:1rem 1.25rem">
+    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;align-items:center">
+      <div>
+        <div style="font-size:.68rem;color:var(--gray-500);text-transform:uppercase;letter-spacing:.07em;font-weight:600">Deadline</div>
+        <div style="font-size:.88rem;font-weight:600;color:{% if now().strftime('%Y-%m-%dT%H:%M') > asgn.deadline[:16] %}var(--red){% else %}var(--gray-900){% endif %}">
+          {{ fmt_dt(asgn.deadline) }}
+          {% if now().strftime('%Y-%m-%dT%H:%M') > asgn.deadline[:16] %}
+            <span class="badge badge-closed" style="margin-left:.35rem">Closed</span>
+          {% else %}
+            <span class="badge badge-open" style="margin-left:.35rem">Open</span>
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <div style="font-size:.68rem;color:var(--gray-500);text-transform:uppercase;letter-spacing:.07em;font-weight:600">Department</div>
+        <div style="font-size:.88rem;font-weight:600;color:var(--gray-900)">{{ asgn.dept_name or 'All Departments' }}</div>
+      </div>
+      <div>
+        <div style="font-size:.68rem;color:var(--gray-500);text-transform:uppercase;letter-spacing:.07em;font-weight:600">Submissions</div>
+        <div style="font-size:.88rem;font-weight:700;color:var(--blue)">{{ subs|length }}</div>
+      </div>
+      <div>
+        <div style="font-size:.68rem;color:var(--gray-500);text-transform:uppercase;letter-spacing:.07em;font-weight:600">Late</div>
+        <div style="font-size:.88rem;font-weight:700;color:var(--red)">{{ subs|selectattr('is_late','equalto',1)|list|length }}</div>
+      </div>
+      {% if asgn.description %}
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:.68rem;color:var(--gray-500);text-transform:uppercase;letter-spacing:.07em;font-weight:600">Instructions</div>
+        <div style="font-size:.82rem;color:var(--gray-600)">{{ asgn.description }}</div>
+      </div>
+      {% endif %}
+
+      <!-- AI Brief Drafter button -->
+      {% if GROQ_OK %}
+      <div style="margin-left:auto">
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('briefModal').classList.add('open')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+          AI Draft Brief
+        </button>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Submissions table -->
+  <div class="card mb">
+    <div class="card-header">
+      <span class="card-title">Student Submissions</span>
+      <span class="mono" style="font-size:.72rem;color:var(--gray-400)">{{ extractable }} with extracted text</span>
+    </div>
+    {% if subs %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Student</th><th>Matric No.</th><th>File</th><th>Size</th><th>Status</th><th>Submitted At</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for s in subs %}
+          <tr>
+            <td class="mono" style="font-size:.72rem;color:var(--gray-400)">{{ loop.index }}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <div style="width:26px;height:26px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:#fff;flex-shrink:0">{{ s.fullname[0].upper() }}</div>
+                <span style="font-size:.83rem;font-weight:500;color:var(--gray-900)">{{ s.fullname }}</span>
+              </div>
+            </td>
+            <td class="mono" style="font-size:.75rem;color:var(--blue)">{{ s.matric or '—' }}</td>
+            <td>
+              <span class="badge badge-{{ file_icon(s.file_ext) }}">{{ s.file_ext.upper() }}</span>
+              {% if s.extracted_text %}
+                <span style="font-size:.65rem;color:var(--green);margin-left:.25rem" title="Text extracted">✓</span>
+              {% endif %}
+            </td>
+            <td class="mono" style="font-size:.75rem;color:var(--gray-400)">{{ human_size(s.file_size) }}</td>
+            <td>
+              {% if s.is_late %}
+                <span class="badge badge-late">LATE</span>
+              {% else %}
+                <span class="badge badge-ontime">On Time</span>
+              {% endif %}
+            </td>
+            <td class="nowrap" style="font-size:.78rem;color:var(--gray-500)">
+              {{ s.submitted_at[:16].replace('T',' ') if 'T' in s.submitted_at else s.submitted_at[:16] }}
+            </td>
+            <td>
+              <div style="display:flex;gap:.35rem;align-items:center">
+                <a href="{{ url_for('admin_download', sid=s.id) }}" class="btn btn-green btn-sm" title="Download">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+                {% if GROQ_OK and s.extracted_text %}
+                <button class="btn btn-outline btn-sm" onclick="aiReview({{ s.id }},this)" title="AI Review">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4"/></svg>
+                  AI
+                </button>
+                {% endif %}
+              </div>
+              <div class="review-box" id="review-{{ s.id }}"></div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <h3>No submissions yet</h3><p>Students haven't submitted for this assignment yet.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Missing Submissions -->
+  <div class="card mb">
+    <div class="card-header">
+      <span class="card-title" style="display:flex;align-items:center;gap:.4rem">
+        <svg style="width:15px;height:15px;color:var(--orange)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        Missing Submissions
+      </span>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <span class="mono" style="font-size:.72rem;color:var(--gray-400)">{{ missing|length }} not submitted</span>
+        {% if missing %}
+        <form method="POST" action="{{ url_for('remind_missing', aid=asgn.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline btn-sm"
+                  onclick="return confirm('Send email reminder to {{ missing|length }} student(s)?')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.81 19.79 19.79 0 010 .18 2 2 0 012 .02h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 7.91"/>
+              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+            </svg>
+            Email Reminder
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% if missing %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Student</th><th>Matric No.</th><th>Email</th></tr></thead>
+        <tbody>
+          {% for s in missing %}
+          <tr>
+            <td class="mono" style="font-size:.72rem;color:var(--gray-400)">{{ loop.index }}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <div style="width:26px;height:26px;background:linear-gradient(135deg,var(--orange),#f97316);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:#fff;flex-shrink:0">{{ s.fullname[0].upper() }}</div>
+                <span style="font-size:.83rem;font-weight:500;color:var(--gray-900)">{{ s.fullname }}</span>
+              </div>
+            </td>
+            <td class="mono" style="font-size:.75rem;color:var(--blue)">{{ s.matric or '—' }}</td>
+            <td style="font-size:.78rem;color:var(--gray-500)">{{ s.email }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty" style="padding:1.25rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <h3>All students submitted</h3>
+        <p>Every student in this department has submitted.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Plagiarism Section -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">
+        <svg style="width:15px;height:15px;color:var(--red);vertical-align:middle;margin-right:.35rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Plagiarism Check
+      </span>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        {% if extractable >= 2 %}
+          <form method="POST" action="{{ url_for('run_check', aid=asgn.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Run Check
+            </button>
+          </form>
+        {% else %}
+          <span style="font-size:.78rem;color:var(--gray-400)">Need 2+ submissions with extractable text</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if plag %}
+      <div style="margin-bottom:.75rem;font-size:.8rem;color:var(--gray-500)">
+        {{ plag|length }} pair(s) compared &mdash;
+        <span style="color:var(--red);font-weight:600">{{ plag|selectattr('score','ge',70)|list|length }} flagged (≥70%)</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Student A</th><th>Student B</th><th>Similarity</th><th>Score</th>{% if GROQ_OK %}<th>AI Explain</th>{% endif %}</tr>
+          </thead>
+          <tbody>
+            {% for p in plag %}
+            <tr style="{% if p.score >= 70 %}background:#fff5f5{% elif p.score >= 40 %}background:#fffbeb{% endif %}">
+              <td>
+                <div style="font-weight:500;font-size:.83rem">{{ p.name_a }}</div>
+                <div class="mono" style="font-size:.7rem;color:var(--blue)">{{ p.matric_a or '—' }}</div>
+              </td>
+              <td>
+                <div style="font-weight:500;font-size:.83rem">{{ p.name_b }}</div>
+                <div class="mono" style="font-size:.7rem;color:var(--blue)">{{ p.matric_b or '—' }}</div>
+              </td>
+              <td style="min-width:100px">
+                <div class="score-bar">
+                  <div class="score-fill" style="width:{{ p.score }}%;background:{% if p.score>=70 %}var(--red){% elif p.score>=40 %}var(--orange){% else %}var(--green){% endif %}"></div>
+                </div>
+              </td>
+              <td>
+                <span style="font-weight:700;font-size:.88rem;color:{% if p.score>=70 %}var(--red){% elif p.score>=40 %}var(--orange){% else %}var(--green){% endif %}">
+                  {{ p.score }}%
+                </span>
+                {% if p.score >= 70 %}
+                  <span class="badge badge-late" style="margin-left:.3rem">Flagged</span>
+                {% endif %}
+              </td>
+              {% if GROQ_OK %}
+              <td>
+                <button class="btn btn-outline btn-sm" onclick="explainPlag({{ p.sub_id_a }},{{ p.sub_id_b }},{{ p.score }},this)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4"/></svg>
+                  Explain
+                </button>
+                <div class="review-box" id="plag-explain-{{ p.sub_id_a }}-{{ p.sub_id_b }}"></div>
+              </td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% elif extractable >= 2 %}
+      <div class="empty" style="padding:1.5rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <h3>No check run yet</h3>
+        <p>Click "Run Check" to analyse submissions for similarity.</p>
+      </div>
+    {% else %}
+      <div class="empty" style="padding:1.5rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <h3>Not enough text to analyse</h3>
+        <p>Need at least 2 submissions with extractable text (PDF, Word, or Excel).</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- AI Brief Drafter Modal -->
+{% if GROQ_OK %}
+<div class="overlay" id="briefModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <span class="modal-title">AI Assignment Brief Drafter</span>
+      <button class="modal-close" onclick="document.getElementById('briefModal').classList.remove('open')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="form-row" style="margin-bottom:.85rem">
+      <div class="form-group">
+        <label class="form-label">Topic / Subject *</label>
+        <input type="text" id="briefTopic" class="form-control" placeholder="e.g. Database Normalisation" value="{{ asgn.title }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Course Code</label>
+        <input type="text" id="briefCourse" class="form-control" value="{{ asgn.course_code }} — {{ asgn.course_name }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Student Level</label>
+        <select id="briefLevel" class="form-control">
+          <option value="HND1">HND1</option><option value="HND2">HND2</option>
+          <option value="ND1">ND1</option><option value="ND2">ND2</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Deadline</label>
+        <input type="text" id="briefDeadline" class="form-control" value="{{ fmt_dt(asgn.deadline) }}">
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="draftBrief()" id="briefBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4"/></svg>
+      Generate Brief
+    </button>
+    <div class="review-box open" id="briefResult" style="margin-top:.85rem;display:none"></div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// AI Submission Review
+function aiReview(subId, btn){
+  const box = document.getElementById('review-'+subId);
+  if(box.classList.contains('open')){ box.classList.remove('open'); return; }
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;animation:spin 1s linear infinite"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0"/></svg> Reviewing…';
+  btn.disabled = true;
+  fetch('/admin/submission/'+subId+'/ai-review',{method:'POST'})
+  .then(r=>r.json()).then(d=>{
+    box.textContent = d.review;
+    box.classList.add('open');
+    btn.innerHTML = orig;
+    btn.disabled = false;
+  }).catch(()=>{ btn.innerHTML = orig; btn.disabled = false; });
+}
+
+// Plagiarism Explain
+function explainPlag(subA, subB, score, btn){
+  const box = document.getElementById('plag-explain-'+subA+'-'+subB);
+  if(box.classList.contains('open')){ box.classList.remove('open'); return; }
+  const orig = btn.innerHTML;
+  btn.innerHTML = 'Loading…';
+  btn.disabled = true;
+  fetch('/admin/assignment/{{ asgn.id }}/plagiarism-explain',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({sub_a:subA, sub_b:subB, score:score})
+  }).then(r=>r.json()).then(d=>{
+    box.textContent = d.explanation;
+    box.classList.add('open');
+    btn.innerHTML = orig;
+    btn.disabled = false;
+  }).catch(()=>{ btn.innerHTML = orig; btn.disabled = false; });
+}
+
+// AI Brief Drafter
+function draftBrief(){
+  const btn = document.getElementById('briefBtn');
+  const box = document.getElementById('briefResult');
+  btn.innerHTML = 'Drafting…';
+  btn.disabled = true;
+  box.style.display = 'block';
+  box.textContent = 'AI is writing your assignment brief…';
+  fetch('/admin/ai-brief',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      topic:   document.getElementById('briefTopic').value,
+      course:  document.getElementById('briefCourse').value,
+      level:   document.getElementById('briefLevel').value,
+      deadline:document.getElementById('briefDeadline').value
+    })
+  }).then(r=>r.json()).then(d=>{
+    box.textContent = d.brief;
+    btn.innerHTML = 'Regenerate';
+    btn.disabled = false;
+  }).catch(()=>{ btn.innerHTML = 'Generate Brief'; btn.disabled = false; });
+}
+
+// Modal close on backdrop
+document.querySelectorAll('.overlay').forEach(o=>{
+  o.addEventListener('click',function(e){ if(e.target===this) this.classList.remove('open'); });
+});
+
+// Spin animation
+const style = document.createElement('style');
+style.textContent = '@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
+document.head.appendChild(style);
+</script>
+{% endblock %}

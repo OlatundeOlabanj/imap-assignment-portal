@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register — TJs-Code Assignment Portal</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body style="background:#f3f4f6">
+
+<div class="auth-wrap">
+  <div class="auth-left">
+    <div class="auth-card" style="max-width:400px;">
+      <img src="{{ url_for('static', filename='img/crest.png') }}" class="auth-crest"
+           onerror="this.style.display='none'" alt="IMAP Crest">
+
+      <div class="auth-school">
+        <div class="auth-school-name">Isa Mustapha Agwai I Polytechnic</div>
+        <div class="auth-school-dept">TJs-Code Assignment Portal</div>
+      </div>
+
+      <div class="auth-title">Create your account</div>
+      <div class="auth-sub">Already registered? <a href="{{ url_for('login') }}" class="link" style="font-weight:600">Sign in</a></div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for cat,msg in messages %}
+          <div class="alert {{ cat }}" style="margin-bottom:.6rem">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {{ msg }}
+          </div>
+        {% endfor %}{% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('register') }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input type="text" name="fullname" class="form-control" placeholder="e.g. JONAH Olabanjo Olatunde" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Matric Number *</label>
+            <input type="text" name="matric" class="form-control" placeholder="IMAP/SST/HSWD/25/26/0006" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Department *</label>
+            <select name="department_id" class="form-control" required>
+              <option value="">— Select —</option>
+              {% for d in depts %}
+                <option value="{{ d.id }}">{{ d.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address *</label>
+          <input type="email" name="email" class="form-control" placeholder="your@email.com" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Password *</label>
+            <input type="password" name="password" class="form-control" placeholder="Min. 6 chars" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirm *</label>
+            <input type="password" name="confirm" class="form-control" placeholder="Repeat password" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/>
+            <line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>
+          </svg>
+          Create Account
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="auth-right">
+    <div class="auth-right-overlay">
+      <div class="auth-right-text">
+        <h2>Join the IMAP<br>Assignment Portal</h2>
+        <p>Register once and manage all your assignment submissions digitally — anytime, anywhere.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
